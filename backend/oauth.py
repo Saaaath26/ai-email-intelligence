@@ -2,15 +2,21 @@ from fastapi import APIRouter
 from google_auth_oauthlib.flow import Flow
 from fastapi.responses import RedirectResponse
 import pickle
+import os
+import json
 
 router = APIRouter()
 
-CLIENT_SECRETS_FILE = "credentials.json"
 SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
+
+# ⚠️ IMPORTANT: change after deployment
 REDIRECT_URI = "http://localhost:8001/auth/callback"
 
-flow = Flow.from_client_secrets_file(
-    CLIENT_SECRETS_FILE,
+# 🔥 LOAD FROM ENV VARIABLE (RENDER)
+client_config = json.loads(os.environ["GOOGLE_CREDENTIALS"])
+
+flow = Flow.from_client_config(
+    client_config,
     scopes=SCOPES,
     redirect_uri=REDIRECT_URI,
 )
@@ -26,7 +32,6 @@ def callback(code: str):
 
     creds = flow.credentials
 
-    # 🔥 SAVE TOKEN
     with open("token.pkl", "wb") as f:
         pickle.dump(creds, f)
 
