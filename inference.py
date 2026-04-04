@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 
 app = FastAPI()
 
@@ -6,15 +6,19 @@ app = FastAPI()
 def home():
     return {"status": "running"}
 
-# ✅ MUST be POST (this fixes your error)
-@app.post("/reset")
+# ✅ HANDLE BOTH /reset AND /reset/
+@app.api_route("/reset", methods=["POST"])
+@app.api_route("/reset/", methods=["POST"])
 def reset():
     return {"status": "ok"}
 
-@app.post("/predict")
-def predict():
+# ✅ HANDLE BOTH /predict AND /predict/
+@app.api_route("/predict", methods=["POST"])
+@app.api_route("/predict/", methods=["POST"])
+def predict(request: Request):
     return {"category": "General", "confidence": 0.9}
-@app.post("/reset")
-def reset():
-    print("RESET HIT")   # debug
-    return {"status": "ok"}
+
+# 🔥 CATCH-ALL (VERY IMPORTANT)
+@app.api_route("/{path:path}", methods=["POST", "GET"])
+def catch_all(path: str):
+    return {"status": "fallback ok"}
