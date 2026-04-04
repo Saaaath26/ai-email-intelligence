@@ -6,3 +6,6 @@ google-api-python-client
 gradio
 requests
 pandas
+fastapi
+uvicorn
+pydantic
