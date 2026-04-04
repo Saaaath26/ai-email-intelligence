@@ -4,7 +4,7 @@ WORKDIR /app
 
 COPY . /app
 
-RUN pip install fastapi uvicorn pydantic
+RUN pip install fastapi uvicorn
 
 EXPOSE 8000
 
