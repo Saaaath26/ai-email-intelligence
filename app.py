@@ -1,32 +1,28 @@
 import gradio as gr
 import requests
-import webbrowser
 from collections import Counter
 import pandas as pd
 
 BASE_URL = "https://ai-email-backend-novs.onrender.com"
 
-# ---------- LOGIN ----------
 def connect_gmail():
-    webbrowser.open(BASE_URL + "/auth/login")
-    return "✅ Login opened. Complete it in browser."
+    return "👉 Open this link and login:\n" + BASE_URL + "/auth/login"
 
-# ---------- PRIORITY SCORING ----------
 def get_priority(email):
     text = email["text"].lower()
-
-    if any(word in text for word in ["urgent", "important", "asap", "deadline"]):
+    if any(word in text for word in ["urgent", "important", "asap"]):
         return "🔥 High"
     elif email["category"] in ["Work", "Finance"]:
         return "⭐ Medium"
-    else:
-        return "Low"
+    return "Low"
 
-# ---------- FETCH ----------
 def fetch_emails():
     try:
         response = requests.get(BASE_URL + "/emails")
         data = response.json()
+
+        if "error" in data:
+            return [[data["error"], "", "", ""]], [], None, "Login required", pd.DataFrame()
 
         emails = data.get("emails", [])
         next_token = data.get("next_page_token")
@@ -37,9 +33,8 @@ def fetch_emails():
         return table, emails, next_token, stats, df
 
     except Exception as e:
-        return [[f"Error: {str(e)}", "", "", ""]], [], None, "Error", pd.DataFrame()
+        return [[str(e), "", "", ""]], [], None, "Error", pd.DataFrame()
 
-# ---------- LOAD MORE ----------
 def load_more(current_emails, token):
     if not token:
         stats, df = generate_stats(current_emails)
@@ -58,36 +53,14 @@ def load_more(current_emails, token):
 
     return table, combined, next_token, stats, df
 
-# ---------- FORMAT ----------
 def format_table(emails):
-    table = []
-    for email in emails:
-        priority = get_priority(email)
+    return [
+        [e["text"][:100] + "...", e["category"], get_priority(e), round(e["confidence"], 2)]
+        for e in emails
+    ]
 
-        table.append([
-            email["text"][:100] + "...",
-            email["category"],
-            priority,
-            round(email["confidence"], 2)
-        ])
-    return table
-
-# ---------- FILTER ----------
-def filter_emails(category, emails):
-    if not emails:
-        return []
-
-    if category == "All":
-        return format_table(emails)
-
-    filtered = [e for e in emails if e["category"] == category]
-    return format_table(filtered)
-
-# ---------- STATS ----------
 def generate_stats(emails):
-    categories = [e["category"] for e in emails]
-    counter = Counter(categories)
-
+    counter = Counter([e["category"] for e in emails])
     stats_text = "\n".join([f"{k}: {v}" for k, v in counter.items()])
 
     df = pd.DataFrame({
@@ -97,80 +70,41 @@ def generate_stats(emails):
 
     return stats_text, df
 
-# ---------- EXPORT ----------
-def export_csv(emails):
-    if not emails:
-        return "No data"
+def filter_emails(category, emails):
+    if category == "All":
+        return format_table(emails)
+    return format_table([e for e in emails if e["category"] == category])
 
+def export_csv(emails):
     df = pd.DataFrame(emails)
     file_path = "emails.csv"
     df.to_csv(file_path, index=False)
-
     return file_path
 
-# ---------- UI ----------
 with gr.Blocks() as demo:
+    gr.Markdown("# 📧 AI Email Intelligence")
 
-    gr.Markdown("# 📧 AI Email Intelligence Pro Dashboard")
-    gr.Markdown("Smart Email Classification + Priority Detection")
+    login_btn = gr.Button("🔐 Connect Gmail")
+    fetch_btn = gr.Button("📥 Fetch Emails")
+    load_btn = gr.Button("🔄 Load More")
+    export_btn = gr.Button("📤 Export CSV")
 
-    with gr.Row():
-        login_btn = gr.Button("🔐 Connect Gmail")
-        fetch_btn = gr.Button("📥 Fetch Emails")
-        load_btn = gr.Button("🔄 Load More")
-        export_btn = gr.Button("📤 Export CSV")
+    status = gr.Textbox()
+    dropdown = gr.Dropdown(["All", "Promotions", "Social", "Tech", "Events", "Work"], value="All")
 
-    status = gr.Textbox(label="Status")
+    table = gr.Dataframe(headers=["Email", "Category", "Priority", "Confidence"])
+    stats = gr.Textbox()
+    chart = gr.BarPlot(x="Category", y="Count")
+    file = gr.File()
 
-    category_dropdown = gr.Dropdown(
-        choices=["All", "Promotions", "Social", "Tech", "Events", "Work"],
-        value="All",
-        label="Filter Category"
-    )
-
-    email_table = gr.Dataframe(
-        headers=["Email", "Category", "Priority", "Confidence"],
-        interactive=False
-    )
-
-    stats_box = gr.Textbox(label="📊 Category Stats")
-
-    chart = gr.BarPlot(
-        x="Category",
-        y="Count",
-        title="Email Category Distribution"
-    )
-
-    file_output = gr.File(label="Download CSV")
-
-    # STATE
     state_emails = gr.State([])
     state_token = gr.State(None)
 
-    # ---------- EVENTS ----------
     login_btn.click(connect_gmail, outputs=status)
-
-    fetch_btn.click(
-        fetch_emails,
-        outputs=[email_table, state_emails, state_token, stats_box, chart]
-    )
-
-    load_btn.click(
-        load_more,
-        inputs=[state_emails, state_token],
-        outputs=[email_table, state_emails, state_token, stats_box, chart]
-    )
-
-    category_dropdown.change(
-        filter_emails,
-        inputs=[category_dropdown, state_emails],
-        outputs=email_table
-    )
-
-    export_btn.click(
-        export_csv,
-        inputs=state_emails,
-        outputs=file_output
-    )
+    fetch_btn.click(fetch_emails, outputs=[table, state_emails, state_token, stats, chart])
+    load_btn.click(load_more, inputs=[state_emails, state_token],
+                   outputs=[table, state_emails, state_token, stats, chart])
+    dropdown.change(filter_emails, inputs=[dropdown, state_emails], outputs=table)
+    export_btn.click(export_csv, inputs=state_emails, outputs=file)
 
 demo.launch()

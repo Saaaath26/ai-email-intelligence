@@ -9,10 +9,8 @@ router = APIRouter()
 
 SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
 
-# 🔥 IMPORTANT: update this AFTER deploy
 REDIRECT_URI = "https://ai-email-backend-novs.onrender.com/auth/callback"
 
-# Load credentials from environment
 client_config = json.loads(os.environ["GOOGLE_CREDENTIALS"])
 
 flow = Flow.from_client_config(

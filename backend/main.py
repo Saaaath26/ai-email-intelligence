@@ -6,7 +6,6 @@ from backend.classifier import classify_email
 
 app = FastAPI()
 
-# OAuth routes
 app.include_router(oauth_router, prefix="/auth")
 
 
@@ -18,6 +17,10 @@ def root():
 @app.get("/emails")
 def read_emails(page_token: str = Query(default=None)):
     service = get_gmail_service()
+
+    if service is None:
+        return {"error": "Not authenticated. Please login first."}
+
     emails, next_token = get_emails(service, page_token=page_token)
 
     results = []
