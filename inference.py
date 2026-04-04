@@ -1,20 +1,28 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-from backend.classifier import classify_email
 
 app = FastAPI()
 
 class EmailRequest(BaseModel):
     text: str
 
+@app.get("/")
+def home():
+    return {"message": "API running"}
+
 @app.post("/predict")
 def predict(req: EmailRequest):
-    category, confidence = classify_email(req.text)
-    return {
-        "category": category,
-        "confidence": confidence
-    }
+    text = req.text.lower()
+
+    if "offer" in text or "discount" in text:
+        return {"category": "Promotions", "confidence": 0.9}
+    elif "meeting" in text or "project" in text:
+        return {"category": "Work", "confidence": 0.85}
+    elif "friend" in text:
+        return {"category": "Social", "confidence": 0.8}
+
+    return {"category": "General", "confidence": 0.7}
 
 @app.post("/reset")
 def reset():
-    return {"message": "reset successful"}
+    return {"status": "reset done"}
