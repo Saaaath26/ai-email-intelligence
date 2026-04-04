@@ -14,3 +14,7 @@ def reset():
 @app.post("/predict")
 def predict():
     return {"category": "General", "confidence": 0.9}
+@app.post("/reset")
+def reset():
+    print("RESET HIT")   # debug
+    return {"status": "ok"}
