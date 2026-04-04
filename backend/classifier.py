@@ -22,7 +22,6 @@ def classify_email(text):
     text_lower = text.lower()
     scores = defaultdict(int)
 
-    # Count keyword matches
     for category, keywords in CATEGORY_RULES.items():
         for word in keywords:
             if word in text_lower:
@@ -33,22 +32,6 @@ def classify_email(text):
         confidence = min(0.7 + 0.1 * scores[best_category], 0.95)
         return best_category, confidence
 
-    return "General", 0.5
-def classify_email(text):
-    text_lower = text.lower()
-    scores = defaultdict(int)
-
-    for category, keywords in CATEGORY_RULES.items():
-        for word in keywords:
-            if word in text_lower:
-                scores[category] += 1
-
-    if scores:
-        best_category = max(scores, key=scores.get)
-        confidence = min(0.7 + 0.1 * scores[best_category], 0.95)
-        return best_category, confidence
-
-    # 🔥 SMART FALLBACK
     if len(text.split()) > 20:
         return "Promotions", 0.6
 

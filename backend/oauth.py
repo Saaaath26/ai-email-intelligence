@@ -9,10 +9,10 @@ router = APIRouter()
 
 SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
 
-# ⚠️ IMPORTANT: change after deployment
-REDIRECT_URI = "http://localhost:8001/auth/callback"
+# 🔥 IMPORTANT: update this AFTER deploy
+REDIRECT_URI = "https://ai-email-backend-novs.onrender.com/auth/callback"
 
-# 🔥 LOAD FROM ENV VARIABLE (RENDER)
+# Load credentials from environment
 client_config = json.loads(os.environ["GOOGLE_CREDENTIALS"])
 
 flow = Flow.from_client_config(
@@ -25,6 +25,7 @@ flow = Flow.from_client_config(
 def login():
     auth_url, _ = flow.authorization_url(prompt='consent')
     return RedirectResponse(auth_url)
+
 
 @router.get("/callback")
 def callback(code: str):

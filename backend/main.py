@@ -1,9 +1,19 @@
 from fastapi import FastAPI, Query
-from auth import get_gmail_service
-from gmail import get_emails
-from classifier import classify_email
+from backend.oauth import router as oauth_router
+from backend.auth import get_gmail_service
+from backend.gmail import get_emails
+from backend.classifier import classify_email
 
 app = FastAPI()
+
+# OAuth routes
+app.include_router(oauth_router, prefix="/auth")
+
+
+@app.get("/")
+def root():
+    return {"message": "Backend running"}
+
 
 @app.get("/emails")
 def read_emails(page_token: str = Query(default=None)):
@@ -23,7 +33,3 @@ def read_emails(page_token: str = Query(default=None)):
         "emails": results,
         "next_page_token": next_token
     }
-
-from oauth import router as oauth_router
-
-app.include_router(oauth_router, prefix="/auth")
