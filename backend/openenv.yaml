@@ -1,0 +1,15 @@
+name: email_intelligence_env
+description: Real Gmail-based email classification environment
+
+tasks:
+  - name: easy
+  - name: medium
+  - name: hard
+
+observation_space:
+  type: dict
+
+action_space:
+  type: string
+
+reward_range: [0.0, 1.0]
