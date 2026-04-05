@@ -1,45 +1,66 @@
-import requests
+from pydantic import BaseModel
+from typing import Dict, Any
 
-BASE_URL = "https://ai-email-backend-novs.onrender.com"
+# ---------- TYPES ---------- #
+
+class Observation(BaseModel):
+    email: str
+
+class Action(BaseModel):
+    category: str
+
+class Reward(BaseModel):
+    value: float
+
+
+# ---------- ENV ---------- #
 
 class EmailEnv:
-    def __init__(self):
-        self.emails = []
+    def __init__(self, task="easy"):
+        self.task = task
         self.index = 0
 
-    def reset(self):
-        res = requests.get(BASE_URL + "/emails")
-        data = res.json()
+        # TASK DATA (REALISTIC)
+        self.datasets = {
+            "easy": [
+                ("Big discount offer just for you!", "Promotions"),
+                ("Meeting scheduled tomorrow", "Work"),
+            ],
+            "medium": [
+                ("Your bank account alert", "Finance"),
+                ("Join our community event", "Social"),
+            ],
+            "hard": [
+                ("Limited time job opportunity apply now", "Job"),
+                ("Important project deadline approaching", "Work"),
+            ]
+        }
 
-        if "error" in data:
-            raise Exception("Login required")
-
-        self.emails = data["emails"]
+    def reset(self) -> Observation:
         self.index = 0
+        email, _ = self.datasets[self.task][self.index]
+        return Observation(email=email)
 
-        return {"email": self.emails[self.index]["text"]}
+    def step(self, action: Action):
+        email, correct = self.datasets[self.task][self.index]
 
-    def step(self, action):
-        email = self.emails[self.index]
-
-        correct = email["category"].lower()
-        predicted = action.lower()
-
-        reward = 1.0 if predicted == correct else 0.3
+        # ---------- REWARD ---------- #
+        if action.category.lower() == correct.lower():
+            reward = 1.0
+        elif action.category.lower() in correct.lower():
+            reward = 0.5
+        else:
+            reward = 0.0
 
         self.index += 1
-        done = self.index >= len(self.emails) or self.index >= 5
+        done = self.index >= len(self.datasets[self.task])
 
         next_obs = {}
         if not done:
-            next_obs = {"email": self.emails[self.index]["text"]}
+            next_email, _ = self.datasets[self.task][self.index]
+            next_obs = Observation(email=next_email)
 
-        return {
-            "observation": next_obs,
-            "reward": reward,
-            "done": done,
-            "error": None
-        }
+        return next_obs, Reward(value=reward), done, {}
 
-    def state(self):
-        return {"index": self.index}
+    def state(self) -> Dict[str, Any]:
+        return {"index": self.index, "task": self.task}

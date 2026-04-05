@@ -1,5 +1,5 @@
-name: email_intelligence_env
-description: Real Gmail-based email classification environment
+name: email_triage_env
+description: AI email classification and prioritization environment
 
 tasks:
   - name: easy
@@ -7,9 +7,15 @@ tasks:
   - name: hard
 
 observation_space:
-  type: dict
+  type: object
+  properties:
+    email:
+      type: string
 
 action_space:
-  type: string
+  type: object
+  properties:
+    category:
+      type: string
 
 reward_range: [0.0, 1.0]
